@@ -2,7 +2,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import React from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
-const MyButton = ({ label, type, onPress }) => {
+const MyButton = ({ label, type, onPress, setSelectedEmoji }) => {
   if (type !== "primary") {
     return (
       <View style={styles.buttonContainer}>
