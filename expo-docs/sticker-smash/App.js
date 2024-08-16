@@ -8,11 +8,14 @@ import * as ImagePicker from "expo-image-picker";
 import CircleAddButton from "./components/CircleAddButton";
 import IconButton from "./components/IconButton";
 import EmojiPicker from "./components/EmojiPicker";
+import EmojiList from "./components/EmojiList";
+import EmojiSticker from "./components/EmojiSticker";
 
 export default function App() {
   const [selectdImage, setSelectedImage] = useState(null);
   const [showAppOptions, setShowAppOptions] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedEmoji, setSelectedEmoji] = useState(null);
 
   const displayImg = selectdImage ? { uri: selectdImage } : PlaceholderImage;
 
@@ -37,7 +40,7 @@ export default function App() {
     setIsModalVisible(true);
   };
 
-  const onClose = () => {
+  const onModalClose = () => {
     setIsModalVisible(false);
   };
 
@@ -45,6 +48,13 @@ export default function App() {
     <View style={styles.container}>
       <View style={styles.imageContainer}>
         <ImageViewer img={displayImg} />
+        {selectdImage && (
+          <EmojiSticker
+            imageSource={selectedEmoji}
+            emojiWidth={50}
+            emojiHeight={50}
+          />
+        )}
       </View>
 
       {showAppOptions ? (
@@ -75,7 +85,9 @@ export default function App() {
         </View>
       )}
 
-      <EmojiPicker visible={isModalVisible} onClose={onClose} />
+      <EmojiPicker visible={isModalVisible} onModalClose={onModalClose}>
+        <EmojiList onSelect={setSelectedEmoji} onModalClose={onModalClose} />
+      </EmojiPicker>
 
       <StatusBar style="auto" />
     </View>
