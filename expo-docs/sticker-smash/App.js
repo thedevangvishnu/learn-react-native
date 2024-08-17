@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import ImageViewer from "./components/ImageViewer";
 import PlaceholderImage from "./assets/images/background-image.png";
 import MyButton from "./components/MyButton";
@@ -11,12 +11,18 @@ import EmojiPicker from "./components/EmojiPicker";
 import EmojiList from "./components/EmojiList";
 import EmojiSticker from "./components/EmojiSticker";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as MediaLibrary from "expo-media-library";
+import { captureRef } from "react-native-view-shot";
+import DomToImage from "dom-to-image";
 
 export default function App() {
   const [selectdImage, setSelectedImage] = useState(null);
   const [showAppOptions, setShowAppOptions] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedEmoji, setSelectedEmoji] = useState(null);
+
+  const inputRef = useRef(null);
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
 
   const displayImg = selectdImage ? { uri: selectdImage } : PlaceholderImage;
 
@@ -30,6 +36,45 @@ export default function App() {
       setSelectedImage(result.assets[0].uri);
       setShowAppOptions(true);
     } else return;
+  };
+
+  const onImageSaveAsync = async () => {
+    if (permissionResponse.status !== "granted") {
+      await requestPermission();
+    }
+
+    if (Platform.OS !== "web") {
+      try {
+        const localUri = await captureRef(inputRef, {
+          height: 440,
+          quality: 1,
+        });
+
+        await MediaLibrary.saveToLibraryAsync(localUri);
+        if (localUri) {
+          alert("Saved!");
+        }
+      } catch (error) {
+        alert("Something went wrong!");
+        console.log(error);
+      }
+    } else {
+      try {
+        const localUrl = await DomToImage.toJpeg(inputRef.current, {
+          width: 320,
+          height: 440,
+          quality: 1,
+        });
+
+        const link = document.createElement("a");
+        link.href = localUrl;
+        link.download = "sticker-smash.jpeg";
+        link.click();
+      } catch (error) {
+        alert("Something went wrong!");
+        console.log(error);
+      }
+    }
   };
 
   const onReset = () => {
@@ -49,14 +94,16 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.imageContainer}>
-        <ImageViewer img={displayImg} />
-        {displayImg && (
-          <EmojiSticker
-            imageSource={selectedEmoji}
-            imageSize={50}
-            selectdImage={selectdImage}
-          />
-        )}
+        <View ref={inputRef} collapsable={false}>
+          <ImageViewer img={displayImg} />
+          {displayImg && (
+            <EmojiSticker
+              imageSource={selectedEmoji}
+              imageSize={50}
+              selectdImage={selectdImage}
+            />
+          )}
+        </View>
       </View>
 
       {showAppOptions ? (
@@ -64,7 +111,11 @@ export default function App() {
           <View style={styles.appOptions}>
             <IconButton icon="refresh" label="Reset" onPress={onReset} />
             <CircleAddButton onPress={onAddSticker} />
-            <IconButton icon="save-alt" label="Save" onPress={() => {}} />
+            <IconButton
+              icon="save-alt"
+              label="Save"
+              onPress={onImageSaveAsync}
+            />
 
             {/* <Text>Options</Text> */}
           </View>
@@ -106,12 +157,10 @@ const styles = StyleSheet.create({
   imageContainer: {
     flex: 1,
     marginTop: 60,
-    // backgroundColor: "red",
   },
   appOptionsContainer: {
     flex: 1 / 3,
     width: 250,
-    // backgroundColor: "yellow",
   },
   appOptions: {
     flexDirection: "row",
@@ -119,7 +168,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   footerContainer: {
-    // backgroundColor: "yellow",
     flex: 1 / 3,
     rowGap: 15,
     alignItems: "center",
